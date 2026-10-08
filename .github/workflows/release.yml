@@ -1,9 +1,8 @@
 name: Release desktop app
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -17,7 +16,7 @@ jobs:
     name: Prepare release
     runs-on: ubuntu-latest
     outputs:
-      should_publish: ${{ steps.release.outputs.should_publish }}
+      signing_enabled: ${{ steps.signing.outputs.enabled }}
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
@@ -34,18 +33,24 @@ jobs:
             exit 1
           fi
 
-      - name: Verify updater signing key
+      - name: Check updater signing configuration
+        id: signing
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PUBLIC_KEY: ${{ vars.TAURI_SIGNING_PUBLIC_KEY }}
         shell: bash
         run: |
-          if [[ -z "${TAURI_SIGNING_PRIVATE_KEY}" ]]; then
-            echo "TAURI_SIGNING_PRIVATE_KEY is not configured" >&2
-            exit 1
+          enabled=$(node .github/scripts/release-config.mjs --check)
+          echo "enabled=${enabled}" >> "${GITHUB_OUTPUT}"
+          if [[ "${enabled}" = "false" ]]; then
+            echo "::notice::Building installers without updater signatures. Users can download and install them manually."
           fi
 
       - name: Read and verify app version
         id: version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
         shell: bash
         run: |
           version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
@@ -53,8 +58,10 @@ jobs:
           cargo_version=$(sed -n '/^version = / { s/version = "\([^"]*\)"/\1/p; q; }' apps/desktop/src-tauri/Cargo.toml)
           test "${version}" = "${package_version}"
           test "${version}" = "${cargo_version}"
-          test "${GITHUB_REF_TYPE}" = "tag"
-          test "${GITHUB_REF_NAME}" = "v${version}"
+          if [[ "${RELEASE_TAG}" != "v${version}" || "${IS_PRERELEASE}" != "false" ]]; then
+            echo "Publish a normal Release with tag v${version}; tag and desktop version must match." >&2
+            exit 1
+          fi
           git fetch origin main:refs/remotes/origin/main
           if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
             echo "Release tag must point to a commit contained in origin/main" >&2
@@ -62,32 +69,16 @@ jobs:
           fi
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
 
-      - name: Check whether this version is already published
-        id: release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
-        shell: bash
-        run: |
-          state=$(gh release view "v${VERSION}" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>/dev/null || true)
-          if [[ "${state}" = "published" ]]; then
-            echo "Version ${VERSION} is already published; nothing to do."
-            echo "should_publish=false" >> "${GITHUB_OUTPUT}"
-          else
-            echo "should_publish=true" >> "${GITHUB_OUTPUT}"
-          fi
-
   publish:
     name: Publish (${{ matrix.platform }})
     needs: prepare
-    if: needs.prepare.outputs.should_publish == 'true'
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: linux-x86_64
             os: ubuntu-22.04
-            args: ""
+            args: "--bundles deb,appimage,rpm"
             target: ""
           - platform: windows-x86_64
             os: windows-latest
@@ -133,6 +124,12 @@ jobs:
         working-directory: apps/desktop
         run: npm ci
 
+      - name: Configure optional updater signatures
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PUBLIC_KEY: ${{ vars.TAURI_SIGNING_PUBLIC_KEY }}
+        run: node .github/scripts/release-config.mjs apps/desktop/src-tauri/tauri.release.conf.json
+
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -141,13 +138,9 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ contains(matrix.platform, 'macos') && '-' || '' }}
         with:
           projectPath: apps/desktop
-          tagName: v__VERSION__
-          releaseName: Cursor BYOK v__VERSION__
-          releaseBody: ${{ contains(needs.prepare.outputs.version, '-') && 'Beta release. Download the installer for your platform from the assets below.' || 'Download the installer for your platform from the assets below.' }}
-          releaseDraft: true
-          prerelease: false
-          uploadUpdaterJson: true
-          args: ${{ matrix.args }}
+          releaseId: ${{ github.event.release.id }}
+          uploadUpdaterJson: ${{ needs.prepare.outputs.signing_enabled == 'true' }}
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
 
       - name: Package legacy Linux updater asset
         if: matrix.platform == 'linux-x86_64'
@@ -158,26 +151,30 @@ jobs:
           mkdir -p legacy-update
           tar -czf "legacy-update/cursor-byok-${VERSION}-linux-amd64.tar.gz" -C target/release cursor-byok-desktop
 
-      - name: Package and sign legacy Windows updater asset
+      - name: Package Windows portable asset
         if: matrix.platform == 'windows-x86_64'
         shell: pwsh
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          SIGNING_ENABLED: ${{ needs.prepare.outputs.signing_enabled }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           New-Item -ItemType Directory -Force legacy-update | Out-Null
           $asset = "legacy-update/cursor-byok-$env:VERSION-windows-amd64.zip"
           Compress-Archive -LiteralPath target/release/cursor-byok-desktop.exe -DestinationPath $asset
-          Push-Location apps/desktop
-          npm exec tauri signer sign -- "../../$asset"
-          Pop-Location
+          if ($env:SIGNING_ENABLED -eq 'true') {
+            Push-Location apps/desktop
+            npm exec tauri signer sign -- "../../$asset"
+            if ($LASTEXITCODE -ne 0) { throw "Windows updater signing failed" }
+            Pop-Location
+            if (!(Test-Path "$asset.sig")) {
+              throw "Windows updater archive signature was not generated"
+            }
+          }
           $entries = @(tar -tf $asset)
           if ($entries.Count -ne 1 -or [System.IO.Path]::GetFileName($entries[0]) -ne 'cursor-byok-desktop.exe') {
             throw "Windows updater archive must contain only cursor-byok-desktop.exe"
-          }
-          if (!(Test-Path "$asset.sig")) {
-            throw "Windows updater archive signature was not generated"
           }
 
       - name: Package legacy macOS updater asset
@@ -202,9 +199,9 @@ jobs:
           if-no-files-found: error
 
   finalize:
-    name: Publish GitHub Release
+    name: Finalize GitHub Release
     needs: [prepare, publish]
-    if: needs.prepare.outputs.should_publish == 'true' && needs.publish.result == 'success'
+    if: needs.publish.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -227,6 +224,7 @@ jobs:
             --notes "Cursor BYOK v${VERSION}"
 
       - name: Generate signed Windows portable update manifest
+        if: needs.prepare.outputs.signing_enabled == 'true'
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
@@ -241,17 +239,14 @@ jobs:
             --output legacy-update/portable-latest.json
 
       - name: Normalize Tauri updater download URLs
+        if: needs.prepare.outputs.signing_enabled == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare.outputs.version }}
+          RELEASE_ID: ${{ github.event.release.id }}
         run: |
           mkdir -p tauri-update
-          release_id=$(
-            gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
-              --jq ".[] | select(.tag_name == \"v${VERSION}\") | .id"
-          )
-          test -n "${release_id}"
-          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > tauri-update/release.json
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" > tauri-update/release.json
           asset_id=$(node -p 'require("./tauri-update/release.json").assets.find(({ name }) => name === "latest.json")?.id ?? ""')
           test -n "${asset_id}"
           gh api \
@@ -265,6 +260,7 @@ jobs:
             --version "${VERSION}"
 
       - name: Upload normalized Tauri updater manifest
+        if: needs.prepare.outputs.signing_enabled == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -276,8 +272,24 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: gh release upload "v${VERSION}" legacy-update/* --clobber
 
-      - name: Publish the completed release
+      - name: Verify required installers
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare.outputs.version }}
-        run: gh release edit "v${VERSION}" --draft=false --latest
+        run: |
+          gh release view "v${VERSION}" --json assets > release-assets.json
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const { assets } = JSON.parse(readFileSync('release-assets.json', 'utf8'));
+          for (const suffix of ['_amd64.deb', '_x64-setup.exe']) {
+            if (!assets.some(({ name, size }) => name.endsWith(`_${process.env.VERSION}${suffix}`) && size > 0)) {
+              throw new Error(`Missing or empty installer: ${suffix}`);
+            }
+          }
+          NODE
+
+      - name: Mark the completed release as Latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: gh release edit "v${VERSION}" --latest

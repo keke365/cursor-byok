@@ -4,12 +4,12 @@
 
 cursor-byok 是一个运行在本机的 Cursor 模型网关，帮助你在 Cursor 中使用自己配置的模型服务。
 
-[English README](./README.md) · [使用指南](https://docs.leokun.cn) · [下载](https://github.com/leookun/cursor-byok/releases/latest) · [提交问题](https://github.com/leookun/cursor-byok/issues)
+[English README](./README.md) · [使用指南](https://docs.leokun.cn) · [下载](https://github.com/keke365/cursor-byok/releases/latest) · [提交问题](https://github.com/leookun/cursor-byok/issues)
 
-[![Release](https://img.shields.io/github/v/release/leookun/cursor-byok?style=flat-square)](https://github.com/leookun/cursor-byok/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/leookun/cursor-byok/total?style=flat-square)](https://github.com/leookun/cursor-byok/releases)
+[![Release](https://img.shields.io/github/v/release/keke365/cursor-byok?style=flat-square)](https://github.com/keke365/cursor-byok/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/keke365/cursor-byok/total?style=flat-square)](https://github.com/keke365/cursor-byok/releases)
 [![License](https://img.shields.io/github/license/leookun/cursor-byok?style=flat-square)](./LICENSE)
-[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/leookun/cursor-byok/releases/latest)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey?style=flat-square)](https://github.com/keke365/cursor-byok/releases/latest)
 
 </div>
 
@@ -39,7 +39,7 @@ cursor-byok 是一个开源的本地模型网关。它在你的设备上运行�
 
 ## 快速开始
 
-1. 从 [GitHub Releases](https://github.com/leookun/cursor-byok/releases/latest) 下载适合你操作系统的最新版本。
+1. 从 [GitHub Releases](https://github.com/keke365/cursor-byok/releases/latest) 下载适合你操作系统的最新版本。
 2. 启动 cursor-byok，打开 **Cursor 配置**，按提示初始化本地 CA（证书颁发机构）。
 3. 在模型设置中添加模型，填写服务地址、API Key 和模型名称，然后保存并运行 **测试**。
 4. 确认测试通过后，保持 cursor-byok 运行。
@@ -217,6 +217,10 @@ make build-docker    # 构建 Docker 镜像
 ## 参与贡献
 
 欢迎提交 Issue 和 Pull Request。提交代码前请先阅读项目中的开发说明，并运行 `make check` 确认格式、测试和前端构建检查通过。
+
+## 桌面应用发行
+
+发布 GitHub Release 后，工作流会自动编译并上传 Linux `.deb` 和 Windows `.exe` 安装包。发行步骤、标签要求和可选的更新签名配置见 [桌面应用发行说明](./RELEASING.md)。
 
 ## 许可证
 
