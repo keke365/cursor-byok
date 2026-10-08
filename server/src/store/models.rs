@@ -75,10 +75,7 @@ impl Store {
         Ok(saved)
     }
 
-    pub(super) async fn create_models_if_missing(
-        &self,
-        inputs: &[ModelConfigInput],
-    ) -> Result<usize> {
+    pub async fn create_models_if_missing(&self, inputs: &[ModelConfigInput]) -> Result<usize> {
         let mut normalized = Vec::with_capacity(inputs.len());
         let mut hashes = HashSet::with_capacity(inputs.len());
         for input in inputs {
@@ -364,6 +361,29 @@ mod tests {
             anthropic_thinking_effort: None,
             thinking_budget_tokens: None,
         }
+    }
+
+    /// 导入时同一文件内的重复项和数据库已有项都只保留一份。
+    #[tokio::test]
+    async fn import_models_skips_duplicates() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::connect(&format!(
+            "sqlite://{}",
+            directory.path().join("test.db").display()
+        ))
+        .await
+        .unwrap();
+        let input = model_input(None);
+
+        assert_eq!(
+            store
+                .create_models_if_missing(&[input.clone(), input.clone()])
+                .await
+                .unwrap(),
+            1
+        );
+        assert_eq!(store.create_models_if_missing(&[input]).await.unwrap(), 0);
+        assert_eq!(store.models().await.unwrap().len(), 1);
     }
 
     /// 分组名是纯展示字段:入库时去除首尾空白、空串归一为 NULL,

@@ -272,24 +272,17 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: gh release upload "v${VERSION}" legacy-update/* --clobber
 
-      - name: Verify required installers
+      - name: Verify required installers and generate download links
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare.outputs.version }}
+          RELEASE_ID: ${{ github.event.release.id }}
         run: |
-          gh release view "v${VERSION}" --json assets > release-assets.json
-          node --input-type=module <<'NODE'
-          import { readFileSync } from 'node:fs';
-          const { assets } = JSON.parse(readFileSync('release-assets.json', 'utf8'));
-          for (const suffix of ['_amd64.deb', '_x64-setup.exe']) {
-            if (!assets.some(({ name, size }) => name.endsWith(`_${process.env.VERSION}${suffix}`) && size > 0)) {
-              throw new Error(`Missing or empty installer: ${suffix}`);
-            }
-          }
-          NODE
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" > release-assets.json
+          node .github/scripts/release-downloads.mjs release-assets.json "${VERSION}" release-notes.md
 
-      - name: Mark the completed release as Latest
+      - name: Show download links in the release and mark it Latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare.outputs.version }}
-        run: gh release edit "v${VERSION}" --latest
+        run: gh release edit "v${VERSION}" --notes-file release-notes.md --latest

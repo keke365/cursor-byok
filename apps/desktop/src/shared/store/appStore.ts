@@ -189,6 +189,17 @@ export const appStore = {
       return null;
     } finally { update({ cursorBusy: false }); }
   },
+  async importModels(models: ModelInput[]) {
+    update({ cursorBusy: true, error: null });
+    try {
+      const result = await api.importModels(models);
+      await appStore.refresh();
+      return result;
+    } catch (cause) {
+      update({ error: cause instanceof Error ? cause.message : String(cause) });
+      return null;
+    } finally { update({ cursorBusy: false }); }
+  },
   async importV0049Models() {
     update({ cursorBusy: true, error: null });
     try {

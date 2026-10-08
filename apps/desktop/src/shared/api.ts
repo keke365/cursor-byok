@@ -86,6 +86,12 @@ export interface LegacyModelImportResult {
   total: number;
 }
 
+export interface ModelImportResult {
+  imported: number;
+  skipped: number;
+  total: number;
+}
+
 export interface ModelConnectivityResult {
   duration_ms: number;
   first_valid_response_ms: number | null;
@@ -488,6 +494,7 @@ export const api = {
   dismissAd: (id: string, reason: string) => request<void>(`/promotions/${encodeURIComponent(id)}/dismissals`, { method: "POST", body: JSON.stringify({ reason }) }),
   models: () => request<Model[]>("/models"),
   createModels: (models: ModelInput[]) => request<Model[]>("/models", { method: "POST", body: JSON.stringify({ models }) }),
+  importModels: (models: ModelInput[]) => request<ModelImportResult>("/models/import", { method: "POST", body: JSON.stringify({ models }) }),
   reorderModels: (modelHashes: string[]) => request<Model[]>("/models/order", { method: "PUT", body: JSON.stringify({ model_hashes: modelHashes }) }),
   discoverModels: (input: ModelDiscoveryInput) => request<{ models: string[] }>("/models/discover", { method: "POST", body: JSON.stringify(input) }),
   previewV0049Models: () => request<LegacyModelImportPreview>("/models/import-v0049"),

@@ -52,6 +52,13 @@ pub struct DiscoveredModels {
 }
 
 #[derive(Clone, Debug, Serialize)]
+pub struct ModelImportResult {
+    pub imported: usize,
+    pub skipped: usize,
+    pub total: usize,
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct LegacyModelImportResult {
     pub imported: usize,
     pub skipped: usize,
@@ -363,6 +370,19 @@ impl ControlService {
 
     pub async fn create_models(&self, models: &[ModelConfigInput]) -> Result<Vec<ModelConfig>> {
         self.store.create_models(models).await
+    }
+
+    pub async fn import_models(&self, models: &[ModelConfigInput]) -> Result<ModelImportResult> {
+        if models.is_empty() {
+            return Err(Error::Config("at least one model is required".into()));
+        }
+        let total = models.len();
+        let imported = self.store.create_models_if_missing(models).await?;
+        Ok(ModelImportResult {
+            imported,
+            skipped: total - imported,
+            total,
+        })
     }
 
     pub async fn reorder_models(&self, model_hashes: &[String]) -> Result<Vec<ModelConfig>> {

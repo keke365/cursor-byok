@@ -40,6 +40,13 @@ pub async fn create(
     ))
 }
 
+pub async fn import(
+    State(service): State<ControlService>,
+    Json(input): Json<SaveModels>,
+) -> Result<Json<super::ModelImportResult>> {
+    Ok(Json(service.import_models(&input.models).await?))
+}
+
 pub async fn reorder(
     State(service): State<ControlService>,
     Json(input): Json<ModelOrder>,

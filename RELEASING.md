@@ -15,7 +15,8 @@
     ├── Linux x86_64：.deb、.AppImage、.rpm
     ├── Windows x86_64：NSIS setup.exe、便携 .zip
     ├── macOS：ARM64 和 x86_64 应用包
-    └── 上传产物，确认 .deb 和 setup.exe 存在且非空，再标记为 Latest
+    └── 上传产物，确认 .deb 和 setup.exe 已上传且非空
+        └── 在发行说明顶部写入直接下载链接，再标记为 Latest
 ```
 
 创建草稿、仅推送标签、编辑已发布的 Release 都不会触发发行。点击 **Publish release** 才会触发。安装包会在编译完成后出现在同一 Release 的 Assets 中，通常需要数分钟或更久；不是点击发布后立即可下载。
@@ -40,6 +41,10 @@
 6. 等待全部任务成功，确认 Assets 包含对应版本的 `*_amd64.deb` 和 `*_x64-setup.exe`。
 
 工作流直接使用已发布 Release 的 ID 上传文件，不创建第二个 Release，也不会因 Release 已发布而跳过构建。保留手写的标题和发行说明。
+
+全部平台构建和附件上传成功后，发行说明顶部会显示 **安装包下载**，包含 Linux x86_64 `.deb` 和 Windows x64 `.exe` 的可点击下载链接。链接直接取自 GitHub 附件 API 的 `browser_download_url`，指向该版本的真实文件，不指向 Actions 临时产物或其他版本。用户无需进入 Actions 页面，Release 下方的 Assets 也保留全部附件。
+
+下载区域由 `.github/scripts/release-downloads.mjs` 生成，用隐藏的 `installer-downloads:start/end` 注释标记。重试工作流只替换此区域，不重复添加链接，也不删除区域外的手写内容。缺少安装包、文件为空、上传未完成或版本不匹配时会报错，不写入无效下载链接。工作流只监听 `published`，更新发行说明不会递归触发构建。
 
 修改工作流不会补跑以前的 `2.0` Release。发布新版本时使用新标签，不删除、移动或复用既有标签。工作流失败后，先修复问题；重试原任务会构建原标签指向的代码，不会自动使用新的 `main` 代码。只有修复了外部环境或仓库配置时才适合重试，否则应提交修复并发行新版本。
 

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { runInNewContext } from "node:vm";
 import { releaseConfig } from "./release-config.mjs";
 
 const workflow = await readFile(new URL("../workflows/release.yml", import.meta.url), "utf8");
@@ -40,21 +39,13 @@ test("signed builds use this repository's public key", () => {
   assert.equal(config.plugins.updater.pubkey, "public-key");
 });
 
-test("installer verification rejects missing, empty, and wrong-version assets", () => {
-  const source = workflow.match(/node --input-type=module <<'NODE'\n([\s\S]*?)\n\s+NODE/)[1];
-  const body = source.replace(/^\s*import .*;\n/m, "");
-  const verify = (assets) => runInNewContext(body, {
-    readFileSync: () => JSON.stringify({ assets }),
-    process: { env: { VERSION: "1.0.1" } },
-  });
-  const assets = [
-    { name: "Cursor BYOK_1.0.1_amd64.deb", size: 100 },
-    { name: "Cursor BYOK_1.0.1_x64-setup.exe", size: 100 },
-  ];
-  assert.doesNotThrow(() => verify(assets));
-  assert.throws(() => verify(assets.slice(0, 1)), /Missing or empty installer/);
-  assert.throws(() => verify([{ ...assets[0], size: 0 }, assets[1]]), /Missing or empty installer/);
-  assert.throws(() => verify([{ ...assets[0], name: "Cursor BYOK_1.0.0_amd64.deb" }, assets[1]]), /Missing or empty installer/);
+test("download notes are published after uploads and only after all builds succeed", () => {
+  assert.match(workflow, /needs: \[prepare, publish\]\s+if: needs\.publish\.result == 'success'/);
+  const upload = workflow.indexOf('run: gh release upload "v${VERSION}" legacy-update/* --clobber');
+  const generate = workflow.indexOf('node .github/scripts/release-downloads.mjs release-assets.json "${VERSION}" release-notes.md');
+  const publish = workflow.indexOf('gh release edit "v${VERSION}" --notes-file release-notes.md --latest');
+  assert.ok(upload !== -1 && generate > upload && publish > generate);
+  assert.match(workflow, /gh api "repos\/\$\{GITHUB_REPOSITORY\}\/releases\/\$\{RELEASE_ID\}" > release-assets\.json/);
 });
 
 test("rejects incomplete signing configuration", () => {

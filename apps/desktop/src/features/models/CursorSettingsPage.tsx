@@ -8,6 +8,7 @@ import { CursorModelTestResult, type CursorModelTestState } from "./CursorModelT
 import styles from "./CursorSettings.module.scss";
 import { PageContent } from "../../shell/layout/PageContent";
 import { LegacyModelImport } from "./LegacyModelImport";
+import { ModelBackupActions } from "./ModelBackupActions";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
 import { FormField, SecretTextInput, TextInput } from "../../shared/ui/FormControls";
 import controls from "../../shared/ui/Controls.module.scss";
@@ -323,7 +324,10 @@ export function CursorSettingsPage() {
         </div>}
       </div>
     </PageActions>
-    <PageActions><TooltipTrigger label={caReady ? t("添加模型") : t("请先初始化 CA")}><button className={controls.iconButton} aria-label={t("添加模型")} disabled={!caReady || cursorBusy} onClick={openNew}><Icon icon={addIcon} size="1.1em" /></button></TooltipTrigger></PageActions>
+    <PageActions>
+      <ModelBackupActions models={models} disabled={cursorBusy} />
+      <TooltipTrigger label={caReady ? t("添加模型") : t("请先初始化 CA")}><button className={controls.iconButton} aria-label={t("添加模型")} disabled={!caReady || cursorBusy} onClick={openNew}><Icon icon={addIcon} size="1.1em" /></button></TooltipTrigger>
+    </PageActions>
     <PageContent title="Cursor" sections={[{ key: "cursor-settings", estimatedHeight: estimatedModelHeight, content }]} />
     <ConfirmDialog
       open={confirmDisableTakeover}
