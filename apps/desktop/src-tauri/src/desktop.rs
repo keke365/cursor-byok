@@ -94,6 +94,7 @@ async fn save_model_backup(
         .add_filter("JSON", &["json"]);
     if let Some(directory) = previous_path
         .as_deref()
+        .map(std::path::Path::new)
         .and_then(std::path::Path::parent)
         .filter(|path| path.is_dir())
     {
