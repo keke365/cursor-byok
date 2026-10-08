@@ -18,6 +18,8 @@
     "core:window:allow-close",
     "core:app:allow-set-dock-visibility",
     "allow-open-terminal-with-command",
+    "allow-save-model-backup",
+    "opener:allow-reveal-item-in-dir",
     "allow-check-portable-update",
     "allow-install-portable-update",
     "clipboard-manager:allow-write-text",

@@ -82,6 +82,36 @@ fn open_terminal_with_command(command: String) -> tauri::Result<()> {
     }
 }
 
+#[tauri::command]
+async fn save_model_backup(
+    contents: String,
+    title: String,
+    previous_path: Option<String>,
+) -> std::result::Result<Option<String>, String> {
+    let mut dialog = rfd::AsyncFileDialog::new()
+        .set_title(title)
+        .set_file_name("cursor-byok-models.json")
+        .add_filter("JSON", &["json"]);
+    if let Some(directory) = previous_path
+        .as_deref()
+        .and_then(std::path::Path::parent)
+        .filter(|path| path.is_dir())
+    {
+        dialog = dialog.set_directory(directory);
+    }
+    let Some(file) = dialog.save_file().await else {
+        return Ok(None);
+    };
+    let mut path = file.path().to_path_buf();
+    if path.extension().is_none() {
+        path.set_extension("json");
+    }
+    tokio::fs::write(&path, contents)
+        .await
+        .map_err(|error| format!("failed to save model backup: {error}"))?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
 #[derive(serde::Deserialize)]
 struct OpenExternalUrlRequest {
     url: String,
@@ -195,6 +225,7 @@ pub fn run() -> ExitCode {
     let app = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             open_terminal_with_command,
+            save_model_backup,
             crate::update::check_portable_update,
             crate::update::install_portable_update,
         ])

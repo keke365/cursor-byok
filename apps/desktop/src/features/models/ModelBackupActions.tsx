@@ -4,12 +4,13 @@ import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
 import controls from "../../shared/ui/Controls.module.scss";
 import { Icon } from "../../shared/ui/Icon";
 import { TooltipTrigger } from "../../shared/ui/TooltipTrigger";
-import { backupIcon, importIcon } from "../../shared/ui/icons";
+import { backupIcon, folderOpenIcon, importIcon } from "../../shared/ui/icons";
 import { useMessage } from "../../shared/ui/message";
 import { appStore } from "../../shared/store/appStore";
+import { isNativeDesktop, revealBackup, saveModelBackup } from "../../shared/native/modelBackup";
 
 const BACKUP_VERSION = 1;
-const BACKUP_NAME = "cursor-byok-models.json";
+const LAST_BACKUP_PATH_KEY = "cursor-byok.models.lastBackupPath";
 
 type ModelBackup = {
   version: number;
@@ -20,20 +21,43 @@ export function ModelBackupActions({ models, disabled }: { models: Model[]; disa
   const message = useMessage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [confirmingBackup, setConfirmingBackup] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [lastBackupPath, setLastBackupPath] = useState(() => localStorage.getItem(LAST_BACKUP_PATH_KEY));
+  const nativeDesktop = isNativeDesktop();
 
-  const backup = () => {
+  const backup = async () => {
     const payload: ModelBackup = {
       version: BACKUP_VERSION,
       models: models.map(modelInput),
     };
-    const url = URL.createObjectURL(new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = BACKUP_NAME;
-    link.click();
-    URL.revokeObjectURL(url);
     setConfirmingBackup(false);
-    message(t("已备份 {count} 个模型", { count: models.length }));
+    setSaving(true);
+    try {
+      const result = await saveModelBackup(
+        `${JSON.stringify(payload, null, 2)}\n`,
+        t("选择保存位置"),
+        lastBackupPath,
+      );
+      if (!result.saved) return;
+      if (result.path) {
+        localStorage.setItem(LAST_BACKUP_PATH_KEY, result.path);
+        setLastBackupPath(result.path);
+      }
+      message(t("已备份 {count} 个模型", { count: models.length }));
+    } catch (cause) {
+      message(t("保存备份失败：{error}", { error: errorText(cause) }), { duration: 5000 });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openLastBackupLocation = async () => {
+    if (!lastBackupPath) return;
+    try {
+      await revealBackup(lastBackupPath);
+    } catch (cause) {
+      message(t("打开备份位置失败：{error}", { error: errorText(cause) }), { duration: 5000 });
+    }
   };
 
   const importBackup = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -55,12 +79,17 @@ export function ModelBackupActions({ models, disabled }: { models: Model[]; disa
 
   return <>
     <TooltipTrigger label={models.length ? t("备份模型配置") : t("没有可备份的模型")}>
-      <button type="button" className={controls.iconButton} aria-label={t("备份模型配置")} disabled={disabled || models.length === 0} onClick={() => setConfirmingBackup(true)}>
+      <button type="button" className={controls.iconButton} aria-label={t("备份模型配置")} disabled={disabled || saving || models.length === 0} onClick={() => setConfirmingBackup(true)}>
         <Icon icon={backupIcon} size="1.1em" />
       </button>
     </TooltipTrigger>
+    {nativeDesktop && <TooltipTrigger label={lastBackupPath ? t("打开上次备份位置") : t("尚无上次备份位置")}>
+      <button type="button" className={controls.iconButton} aria-label={t("打开上次备份位置")} disabled={disabled || saving || !lastBackupPath} onClick={() => void openLastBackupLocation()}>
+        <Icon icon={folderOpenIcon} size="1.1em" />
+      </button>
+    </TooltipTrigger>}
     <TooltipTrigger label={t("从 JSON 导入模型配置")}>
-      <button type="button" className={controls.iconButton} aria-label={t("从 JSON 导入模型配置")} disabled={disabled} onClick={() => inputRef.current?.click()}>
+      <button type="button" className={controls.iconButton} aria-label={t("从 JSON 导入模型配置")} disabled={disabled || saving} onClick={() => inputRef.current?.click()}>
         <Icon icon={importIcon} size="1.1em" />
       </button>
     </TooltipTrigger>
@@ -68,14 +97,19 @@ export function ModelBackupActions({ models, disabled }: { models: Model[]; disa
     <ConfirmDialog
       open={confirmingBackup}
       title={t("备份模型配置")}
+      busy={saving}
       cancelLabel={t("取消")}
-      confirmLabel={t("继续备份")}
+      confirmLabel={t("选择保存位置")}
       onCancel={() => setConfirmingBackup(false)}
-      onConfirm={backup}
+      onConfirm={() => void backup()}
     >
       <p>{t("备份文件包含模型 API Key，请妥善保管并避免分享给他人。")}</p>
     </ConfirmDialog>
   </>;
+}
+
+function errorText(cause: unknown) {
+  return cause instanceof Error ? cause.message : String(cause);
 }
 
 function parseBackup(text: string): ModelBackup {

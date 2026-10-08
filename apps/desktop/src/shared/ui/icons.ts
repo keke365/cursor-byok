@@ -27,6 +27,7 @@ export const settingsIcon = icon('<path fill="currentColor" fill-rule="evenodd" 
 // collection provides an outline variant.
 export const addIcon = icon('<path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/>'); // mdi:plus
 export const backupIcon = icon('<path fill="currentColor" d="M19 8H5c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-9c0-1.1-.9-2-2-2m0 11H5v-9h14zM16 3H8v2h8zm3 3H5v1h14z"/>'); // mdi:archive-outline
+export const folderOpenIcon = icon('<path fill="currentColor" d="M19 20H4a2 2 0 0 1-2-2V6c0-1.11.89-2 2-2h6l2 2h7a2 2 0 0 1 2 2h-2v2H6.87l-2.6 8H19l2.33-7H23l-2.39 7.13C20.34 19.23 19.7 20 19 20"/>'); // mdi:folder-open-outline
 export const importIcon = icon('<path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"/>'); // mdi:tray-arrow-down
 export const editIcon = icon('<path fill="currentColor" d="m14.06 9l.94.94L5.92 19H5v-.92zm3.6-6c-.25 0-.51.1-.7.29l-1.83 1.83l3.75 3.75l1.83-1.83c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29m-3.6 3.19L3 17.25V21h3.75L17.81 9.94z"/>'); // mdi:pencil-outline
 export const eyeIcon = icon('<path fill="currentColor" d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>'); // mdi:eye-outline

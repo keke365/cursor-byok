@@ -12,6 +12,20 @@
         }
       ]
     },
+    "006f25242399329d": {
+      "source": "打开备份位置失败：{error}",
+      "kind": "template",
+      "placeholders": [
+        "error"
+      ],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 55,
+          "column": 15
+        }
+      ]
+    },
     "00929f23850e4ff0": {
       "source": "成功调用：{count}",
       "kind": "template",
@@ -33,7 +47,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 46,
+          "line": 66,
           "column": 68
         }
       ]
@@ -307,12 +321,12 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 88,
+          "line": 118,
           "column": 84
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 92,
+          "line": 122,
           "column": 115
         }
       ]
@@ -450,7 +464,7 @@
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 47,
+          "line": 67,
           "column": 15
         }
       ]
@@ -631,7 +645,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 86,
+          "line": 116,
           "column": 21
         }
       ]
@@ -1173,7 +1187,7 @@
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 71,
+          "line": 97,
           "column": 20
         },
         {
@@ -1476,8 +1490,20 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 91,
+          "line": 121,
           "column": 84
+        }
+      ]
+    },
+    "35e54912cd0338f8": {
+      "source": "尚无上次备份位置",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 82,
+          "column": 79
         }
       ]
     },
@@ -2066,12 +2092,29 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 62,
+          "line": 87,
           "column": 28
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 63,
+          "line": 88,
+          "column": 73
+        }
+      ]
+    },
+    "4a2c526a226a1351": {
+      "source": "打开上次备份位置",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 82,
+          "column": 63
+        },
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 83,
           "column": 73
         }
       ]
@@ -2124,6 +2167,20 @@
         }
       ]
     },
+    "4b54b060a4e36211": {
+      "source": "保存备份失败：{error}",
+      "kind": "template",
+      "placeholders": [
+        "error"
+      ],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 44,
+          "column": 15
+        }
+      ]
+    },
     "4d0680f9efaef147": {
       "source": "未读",
       "kind": "text",
@@ -2158,18 +2215,6 @@
         }
       ]
     },
-    "4de4fdb367fa7f37": {
-      "source": "继续备份",
-      "kind": "text",
-      "placeholders": [],
-      "refs": [
-        {
-          "file": "features/models/ModelBackupActions.tsx",
-          "line": 72,
-          "column": 21
-        }
-      ]
-    },
     "4e30d7c9ed2b0eee": {
       "source": "不设置",
       "kind": "text",
@@ -2189,7 +2234,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 57,
+          "line": 77,
           "column": 58
         }
       ]
@@ -4397,7 +4442,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 90,
+          "line": 120,
           "column": 58
         }
       ]
@@ -4913,7 +4958,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 76,
+          "line": 102,
           "column": 11
         }
       ]
@@ -6040,8 +6085,8 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 36,
-          "column": 13
+          "line": 42,
+          "column": 15
         }
       ]
     },
@@ -6085,6 +6130,18 @@
           "file": "features/models/CursorSettingsPage.tsx",
           "line": 350,
           "column": 53
+        }
+      ]
+    },
+    "edfa33a3f470ecc5": {
+      "source": "选择保存位置",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 98,
+          "column": 21
         }
       ]
     },
@@ -6225,17 +6282,17 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 57,
+          "line": 77,
           "column": 44
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 58,
+          "line": 78,
           "column": 73
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 70,
+          "line": 95,
           "column": 14
         }
       ]
