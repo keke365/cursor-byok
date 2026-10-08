@@ -7,11 +7,12 @@
 ```text
 将发行代码推送到 main
     │
-    └── CI 检查，不发布安装包
+    └── 仅更新代码，不发布安装包（CI 检查由 pull request 触发）
 
 仓库所有者在 GitHub 发布 Release
     │
-    ├── 校验标签、应用版本和 main 中的提交
+    ├── 校验标签格式、发行类型和 main 中的提交
+    ├── 各平台独立 checkout 后，按标签同步桌面版本再构建
     ├── Linux x86_64：.deb、.AppImage、.rpm
     ├── Windows x86_64：NSIS setup.exe、便携 .zip
     ├── macOS：ARM64 和 x86_64 应用包
@@ -24,18 +25,13 @@
 ## 发布步骤
 
 1. 确认仓库的 GitHub Actions 已启用。Fork 仓库可能需要先在 **Actions** 页面启用工作流。
-2. 统一桌面应用版本：
-   - `apps/desktop/package.json`
-   - `apps/desktop/package-lock.json`
-   - `apps/desktop/src-tauri/Cargo.toml`
-   - `apps/desktop/src-tauri/tauri.conf.json`
-   - `Cargo.lock` 中的 `cursor-byok-desktop` 条目
-3. 将经过检查的发行提交推送到 `main`。保留独立的 `cursor-server` 版本。
+2. 选择尚未发布的版本标签，例如 `v2.1.2`。**标签是发行版本的唯一来源，无需预先手动修改源码中的版本号。**
+3. 将经过检查、包含当前发布工作流和脚本的发行提交推送到 `main`。
 4. 由仓库所有者在 **Releases → Draft a new release** 创建 Release：
-   - 标签必须是 `v` 加应用版本。例如，当前应用版本 `1.0.1` 对应 `v1.0.1`。
+   - 标签必须是 `vMAJOR.MINOR.PATCH`，例如 `v2.1.2`；构建版本自动变为 `2.1.2`，不要求与提交中的旧版本相等。
    - 标签必须指向已经包含在 `main` 中的发行提交。
    - 使用完整版本号，例如 `v2.0.0`，不要使用 `2.0` 或 `v2.0`。
-   - 不勾选 **Set as a pre-release**。Beta 使用 `v1.0.2-beta.1`，且必须同步应用版本。
+   - 不勾选 **Set as a pre-release**。Beta 使用 `v2.2.0-beta.1`，后缀会完整保留到应用版本中，标题或说明须明确标注 Beta。更新客户端使用 `/releases/latest/download/`，因此 Beta 也采用普通 Release。
    - 建议取消 **Set as the latest release**，让工作流在全部平台成功后自动设置 Latest，避免自动更新客户端读取构建中的发行版。
 5. 点击 **Publish release**，查看 **Actions → Release desktop app**。
 6. 等待全部任务成功，确认 Assets 包含对应版本的 `*_amd64.deb` 和 `*_x64-setup.exe`。
@@ -47,6 +43,18 @@
 下载区域由 `.github/scripts/release-downloads.mjs` 生成，用隐藏的 `installer-downloads:start/end` 注释标记。重试工作流只替换此区域，不重复添加链接，也不删除区域外的手写内容。缺少安装包、文件为空、上传未完成或版本不匹配时会报错，不写入无效下载链接。工作流只监听 `published`，更新发行说明不会递归触发构建。
 
 修改工作流不会补跑以前的 `2.0` Release。发布新版本时使用新标签，不删除、移动或复用既有标签。工作流失败后，先修复问题；重试原任务会构建原标签指向的代码，不会自动使用新的 `main` 代码。只有修复了外部环境或仓库配置时才适合重试，否则应提交修复并发行新版本。
+
+## 自动版本同步
+
+`.github/scripts/release-version.mjs` 统一负责标签校验和版本同步，无需安装额外依赖：
+
+- `prepare` 使用 `--check` 从 Release 标签解析完整版本，通过任务输出供后续打包和更新清单使用。
+- Linux、Windows、macOS 的每个 `publish` 任务都在独立 checkout 后、`npm ci` 和 Tauri 构建前执行 `--write`。任务之间不共享工作目录，因此不能只在 `prepare` 修改文件。
+- 自动同步 `apps/desktop/package.json`、`apps/desktop/package-lock.json` 的顶层及 `packages[""]`、`apps/desktop/src-tauri/tauri.conf.json`、`apps/desktop/src-tauri/Cargo.toml` 和根目录 `Cargo.lock` 的 `cursor-byok-desktop` 条目。
+- `cursor-server` 和依赖版本保持不变；同步结果只存在于构建工作目录，不自动提交或回写 `main`。源码中保留的版本用于未执行同步的本地开发构建，不限制后续发行版本。
+- 无效标签（如 `v2.1`、`v02.1.1`）或 GitHub prerelease 会直接失败。正式标签和 Beta 标签都必须指向 `main` 中的提交。
+
+现有旧标签仍使用它所指向提交中的工作流。将修复推送到 `main` 后，需要在包含修复的提交上创建新标签并发布 Release，重试旧标签不会加载新脚本。
 
 ## 安装包和自动更新签名
 

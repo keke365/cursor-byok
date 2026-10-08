@@ -20,7 +20,8 @@ Release through `.github/workflows/release.yml`. Follow [RELEASING.md](../../../
 
 - The sole release trigger is `release: types: [published]`. Creating a draft, editing a Release, pushing a tag alone, ordinary `main` pushes, and manual dispatch do not trigger installation-package builds.
 - Publishing a Release starts Linux, Windows, and macOS builds and uploads assets to that same Release ID. Do not skip builds merely because the Release is already published.
-- Use a `vMAJOR.MINOR.PATCH` tag whose commit is contained in `origin/main`. The tag must equal `v<version>` from the desktop manifests.
+- Use a `vMAJOR.MINOR.PATCH` tag whose commit is contained in `origin/main`. The tag is the sole release-version source; checked-in desktop versions do not need a manual bump.
+- `release-version.mjs --check` validates the tag in `prepare`; `--write` synchronizes manifests in every independent `publish` checkout before npm/Tauri builds. Never rely on edits in another job's filesystem.
 - Beta tags use `vMAJOR.MINOR.PATCH-beta.N` and a visibly Beta title or body. Publish them as normal Releases, not GitHub prereleases; updater clients use `/releases/latest/download/`.
 - Windows uses NSIS, including beta versions; WiX/MSI cannot represent these prerelease identifiers.
 - Recommend leaving Latest unchecked when publishing. The workflow verifies nonempty `.deb` and `setup.exe` assets and marks the completed Release Latest after all platforms succeed.
@@ -28,7 +29,7 @@ Release through `.github/workflows/release.yml`. Follow [RELEASING.md](../../../
 
 ## Release sources
 
-Keep the desktop version identical in these manifests and locks:
+The release script automatically synchronizes these desktop manifests and locks in each build checkout. These generated version changes are not committed back to `main`:
 
 ```text
 cursor-byok/
@@ -41,7 +42,9 @@ cursor-byok/
 │       └── tauri.conf.json
 └── .github/
     ├── workflows/release.yml
-    └── scripts/release-config.mjs
+    └── scripts/
+        ├── release-version.mjs
+        └── release-config.mjs
 ```
 
 Do not change the independent `cursor-server` version just to release the desktop app. The tracked `scripts/cursor-proto/proto/agent_v1.proto` and `aiserver_v1.proto` are required build inputs.
@@ -58,7 +61,7 @@ Do not change the independent `cursor-server` version just to release the deskto
 ## Prepare and validate
 
 1. Inspect `git status`, fetch `origin/main`, and preserve unrelated user changes.
-2. Choose the next version and update the manifests and locks consistently.
+2. Choose the next version tag. Validate it with `RELEASE_TAG=vX.Y.Z IS_PRERELEASE=false node .github/scripts/release-version.mjs --check`; do not manually bump manifests for publication.
 3. Confirm the intended tag and Release do not already exist.
 4. For signed updates, verify the repository's configured public key matches its private key without exposing the private key.
 5. Run `node --test .github/scripts/*.test.mjs` and `cargo fmt --all -- --check` from the repository root.
