@@ -53,15 +53,46 @@ jobs:
           IS_PRERELEASE: ${{ github.event.release.prerelease }}
         shell: bash
         run: |
-          version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
-          package_version=$(node -p "require('./apps/desktop/package.json').version")
-          cargo_version=$(sed -n '/^version = / { s/version = "\([^"]*\)"/\1/p; q; }' apps/desktop/src-tauri/Cargo.toml)
-          test "${version}" = "${package_version}"
-          test "${version}" = "${cargo_version}"
-          if [[ "${RELEASE_TAG}" != "v${version}" || "${IS_PRERELEASE}" != "false" ]]; then
-            echo "Publish a normal Release with tag v${version}; tag and desktop version must match." >&2
+          # Accept any vMAJOR.MINOR.PATCH (optional -prerelease suffix).
+          if [[ ! "${RELEASE_TAG}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Publish a normal Release with tag matching vMAJOR.MINOR.PATCH (e.g. v2.1.0, v2.1.0-beta.1)." >&2
             exit 1
           fi
+          if [[ -n "${BASH_REMATCH[4]}" ]]; then
+            if [[ "${IS_PRERELEASE}" != "true" ]]; then
+              echo "Tag ${RELEASE_TAG} has a pre-release suffix; mark the GitHub Release as pre-release." >&2
+              exit 1
+            fi
+          elif [[ "${IS_PRERELEASE}" != "false" ]]; then
+            echo "Release is marked pre-release but tag ${RELEASE_TAG} has no pre-release suffix." >&2
+            exit 1
+          fi
+          version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+
+          # Synchronize desktop version fields with the release tag so the build
+          # output (binary internal version, asset names) all matches the tag.
+          node -e "
+            const fs = require('fs');
+            const writeJson = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
+            for (const file of ['./apps/desktop/src-tauri/tauri.conf.json', './apps/desktop/package.json']) {
+              const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+              data.version = '${version}';
+              writeJson(file, data);
+            }
+            const packageLock = JSON.parse(fs.readFileSync('./apps/desktop/package-lock.json', 'utf8'));
+            packageLock.version = '${version}';
+            if (packageLock.packages && packageLock.packages['apps/desktop']) {
+              packageLock.packages['apps/desktop'].version = '${version}';
+            }
+            writeJson('./apps/desktop/package-lock.json', packageLock);
+          "
+          sed -i "0,/^version = / s/^version = \".*\"/version = \"${version}\"/" apps/desktop/src-tauri/Cargo.toml
+          awk -v v="version = \"${version}\"" '
+            /^name = "cursor-byok-desktop"$/ { in_pkg = 1; print; next }
+            in_pkg && /^version = / { print v; in_pkg = 0; next }
+            { print }
+          ' Cargo.lock > Cargo.lock.tmp && mv Cargo.lock.tmp Cargo.lock
+
           git fetch origin main:refs/remotes/origin/main
           if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
             echo "Release tag must point to a commit contained in origin/main" >&2
