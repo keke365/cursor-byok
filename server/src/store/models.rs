@@ -184,6 +184,21 @@ impl Store {
         Ok(())
     }
 
+    pub async fn clear_models(&self) -> Result<usize> {
+        let _write = self.writes.lock().await;
+        let mut transaction = self.pool.begin().await?;
+        sqlx::query(
+            "UPDATE llm_calls SET model_hash = NULL WHERE model_hash IN (SELECT model_hash FROM model_configs)",
+        )
+        .execute(&mut *transaction)
+        .await?;
+        let result = sqlx::query("DELETE FROM model_configs")
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await?;
+        Ok(usize::try_from(result.rows_affected()).unwrap_or(0))
+    }
+
     pub async fn reorder_models(&self, model_hashes: &[String]) -> Result<Vec<ModelConfig>> {
         let current = self.models().await?;
         let current_hashes = current
@@ -221,7 +236,7 @@ impl Store {
     }
 }
 
-async fn insert_model(
+pub(super) async fn insert_model(
     transaction: &mut Transaction<'_, Sqlite>,
     hash: &str,
     input: &ModelConfigInput,
@@ -363,6 +378,26 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn clear_models_removes_every_configuration() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::connect(&format!(
+            "sqlite://{}",
+            directory.path().join("test.db").display()
+        ))
+        .await
+        .unwrap();
+        let mut second = model_input(None);
+        second.model_id = "other-model".into();
+        store
+            .create_models(&[model_input(None), second])
+            .await
+            .unwrap();
+        assert_eq!(store.clear_models().await.unwrap(), 2);
+        assert!(store.models().await.unwrap().is_empty());
+        assert_eq!(store.clear_models().await.unwrap(), 0);
+    }
+
     /// 导入时同一文件内的重复项和数据库已有项都只保留一份。
     #[tokio::test]
     async fn import_models_skips_duplicates() {
@@ -383,6 +418,228 @@ mod tests {
             1
         );
         assert_eq!(store.create_models_if_missing(&[input]).await.unwrap(), 0);
+        assert_eq!(store.models().await.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn import_matches_endpoint_and_model_instead_of_credentials_or_name() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::connect(&format!(
+            "sqlite://{}",
+            directory.path().join("test.db").display()
+        ))
+        .await
+        .unwrap();
+        let original = store.create_model(&model_input(None)).await.unwrap();
+        let mut incoming = model_input(Some("Imported"));
+        incoming.use_full_url = false;
+        incoming.base_url = "https://example.com/v1".into();
+        incoming.display_name = "Renamed".into();
+        incoming.api_key = "new-key".into();
+        incoming.custom_headers_enabled = true;
+        incoming.custom_headers = serde_json::json!({"X-Test": "new-value"});
+        let preview = store
+            .preview_model_import(&[incoming.clone()])
+            .await
+            .unwrap();
+        assert_eq!(preview.conflicts.len(), 1);
+        assert!(store
+            .import_models(&[incoming.clone()], None)
+            .await
+            .is_err());
+        assert_eq!(store.models().await.unwrap().len(), 1);
+        let skipped = store
+            .import_models(
+                &[incoming.clone()],
+                Some(super::super::ModelImportPolicy::Skip),
+            )
+            .await
+            .unwrap();
+        assert_eq!(skipped.skipped, 1);
+        assert_eq!(store.models().await.unwrap()[0].api_key, "test-key");
+        let overwritten = store
+            .import_models(
+                &[incoming],
+                Some(super::super::ModelImportPolicy::Overwrite),
+            )
+            .await
+            .unwrap();
+        assert_eq!(overwritten.overwritten, 1);
+        let saved = store.models().await.unwrap();
+        assert_eq!(saved.len(), 1);
+        assert_eq!(saved[0].api_key, "new-key");
+        assert_eq!(saved[0].display_name, "Renamed");
+        assert_eq!(saved[0].custom_headers["X-Test"], "new-value");
+        assert_eq!(saved[0].group_name.as_deref(), Some("Imported"));
+        assert_eq!(saved[0].created_at_ms, original.created_at_ms);
+        assert_eq!(saved[0].sort_order, original.sort_order);
+    }
+
+    #[tokio::test]
+    async fn import_normalizes_equivalent_urls_but_keeps_distinct_protocol_endpoints() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::connect(&format!(
+            "sqlite://{}",
+            directory.path().join("test.db").display()
+        ))
+        .await
+        .unwrap();
+        store.create_model(&model_input(None)).await.unwrap();
+        let mut equivalent = model_input(None);
+        equivalent.base_url = "https://EXAMPLE.COM:443/v1/chat/completions".into();
+        equivalent.model_id = " test-model ".into();
+        let mut distinct = model_input(None);
+        distinct.use_full_url = false;
+        distinct.base_url = "https://example.com/v1".into();
+        distinct.openai_endpoint = crate::model::OPENAI_RESPONSES_ENDPOINT.into();
+        let preview = store
+            .preview_model_import(&[equivalent, distinct.clone()])
+            .await
+            .unwrap();
+        assert_eq!(preview.conflicts.len(), 1);
+        assert_eq!(
+            preview.conflicts[0].request_url,
+            "https://example.com/v1/chat/completions"
+        );
+        assert_eq!(
+            store
+                .import_models(&[distinct], None)
+                .await
+                .unwrap()
+                .imported,
+            1
+        );
+    }
+
+    #[tokio::test]
+    async fn import_policy_handles_file_duplicates_and_distinct_endpoints() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::connect(&format!(
+            "sqlite://{}",
+            directory.path().join("test.db").display()
+        ))
+        .await
+        .unwrap();
+        let first = model_input(None);
+        let mut last = first.clone();
+        last.api_key = "last-key".into();
+        let mut distinct = first.clone();
+        distinct.base_url = "https://other.example.com/v1/chat/completions".into();
+        let inputs = [first.clone(), last.clone(), distinct.clone()];
+        assert_eq!(
+            store
+                .preview_model_import(&inputs)
+                .await
+                .unwrap()
+                .conflicts
+                .len(),
+            1
+        );
+        assert!(store.import_models(&inputs, None).await.is_err());
+        assert!(store.models().await.unwrap().is_empty());
+        let result = store
+            .import_models(&inputs, Some(super::super::ModelImportPolicy::Skip))
+            .await
+            .unwrap();
+        assert_eq!(
+            (result.imported, result.overwritten, result.skipped),
+            (2, 0, 1)
+        );
+        assert_eq!(
+            store
+                .models()
+                .await
+                .unwrap()
+                .iter()
+                .find(|model| model.base_url == first.base_url)
+                .unwrap()
+                .api_key,
+            first.api_key
+        );
+        let result = store
+            .import_models(
+                &[first, last],
+                Some(super::super::ModelImportPolicy::Overwrite),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            (result.imported, result.overwritten, result.skipped),
+            (0, 2, 0)
+        );
+        assert_eq!(store.models().await.unwrap().len(), 2);
+        assert!(store
+            .models()
+            .await
+            .unwrap()
+            .iter()
+            .any(|model| model.api_key == "last-key"));
+        let mut new_model = distinct;
+        new_model.model_id = "different-model".into();
+        assert_eq!(
+            store
+                .import_models(&[new_model], None)
+                .await
+                .unwrap()
+                .imported,
+            1
+        );
+    }
+
+    #[tokio::test]
+    async fn import_failure_rolls_back_overwrites_and_new_models() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::connect(&format!(
+            "sqlite://{}",
+            directory.path().join("test.db").display()
+        ))
+        .await
+        .unwrap();
+        let original = store.create_model(&model_input(None)).await.unwrap();
+        let mut incoming = model_input(None);
+        incoming.api_key = "replacement-key".into();
+        let mut invalid = model_input(None);
+        invalid.model_id = "new-model".into();
+        invalid.context_window_tokens = Some(u64::MAX);
+        assert!(store
+            .import_models(
+                &[incoming, invalid],
+                Some(super::super::ModelImportPolicy::Overwrite)
+            )
+            .await
+            .is_err());
+        let saved = store.models().await.unwrap();
+        assert_eq!(saved.len(), 1);
+        assert_eq!(saved[0].model_hash, original.model_hash);
+        assert_eq!(saved[0].api_key, original.api_key);
+    }
+
+    #[tokio::test]
+    async fn import_overwrite_replaces_all_matching_configurations() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::connect(&format!(
+            "sqlite://{}",
+            directory.path().join("test.db").display()
+        ))
+        .await
+        .unwrap();
+        let first = model_input(None);
+        let mut variant = first.clone();
+        variant.display_name = "Variant".into();
+        store
+            .create_models(&[first.clone(), variant])
+            .await
+            .unwrap();
+        let mut incoming = first;
+        incoming.api_key = "replacement".into();
+        let result = store
+            .import_models(
+                &[incoming],
+                Some(super::super::ModelImportPolicy::Overwrite),
+            )
+            .await
+            .unwrap();
+        assert_eq!(result.overwritten, 1);
         assert_eq!(store.models().await.unwrap().len(), 1);
     }
 

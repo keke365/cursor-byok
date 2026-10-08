@@ -28,8 +28,9 @@ use crate::{
     plugin::{PluginDescriptor, PluginRegistry, PluginRuntime, PluginRuntimeStatus},
     provider::{is_valid_response_event, ModelEvent, Provider},
     store::{
-        CommitSettings, DesktopSettings, ExternalApiSettings, PortSettings, ProxySettings,
-        ProxySettingsInput, StatisticsStorage, Store, TabSettings, TokenPricingSettings,
+        CommitSettings, DesktopSettings, ExternalApiSettings, ModelImportPolicy,
+        ModelImportPreview, ModelImportResult, PortSettings, ProxySettings, ProxySettingsInput,
+        StatisticsStorage, Store, TabSettings, TokenPricingSettings,
     },
     Error, Result,
 };
@@ -49,13 +50,6 @@ pub struct ControlService {
 #[derive(Clone, Debug, Serialize)]
 pub struct DiscoveredModels {
     pub models: Vec<String>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct ModelImportResult {
-    pub imported: usize,
-    pub skipped: usize,
-    pub total: usize,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -372,17 +366,19 @@ impl ControlService {
         self.store.create_models(models).await
     }
 
-    pub async fn import_models(&self, models: &[ModelConfigInput]) -> Result<ModelImportResult> {
-        if models.is_empty() {
-            return Err(Error::Config("at least one model is required".into()));
-        }
-        let total = models.len();
-        let imported = self.store.create_models_if_missing(models).await?;
-        Ok(ModelImportResult {
-            imported,
-            skipped: total - imported,
-            total,
-        })
+    pub async fn preview_model_import(
+        &self,
+        models: &[ModelConfigInput],
+    ) -> Result<ModelImportPreview> {
+        self.store.preview_model_import(models).await
+    }
+
+    pub async fn import_models(
+        &self,
+        models: &[ModelConfigInput],
+        policy: Option<ModelImportPolicy>,
+    ) -> Result<ModelImportResult> {
+        self.store.import_models(models, policy).await
     }
 
     pub async fn reorder_models(&self, model_hashes: &[String]) -> Result<Vec<ModelConfig>> {
@@ -391,6 +387,10 @@ impl ControlService {
 
     pub async fn delete_model(&self, model_hash: &str) -> Result<()> {
         self.store.delete_model(model_hash).await
+    }
+
+    pub async fn clear_models(&self) -> Result<usize> {
+        self.store.clear_models().await
     }
 
     pub async fn update_model(

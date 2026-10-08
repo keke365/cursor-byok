@@ -4,6 +4,8 @@ import type {
   ExternalApiSettings,
   LlmCall,
   Model,
+  ModelInput,
+  ModelImportPreview,
   Overview,
   OverviewTokenUsageBucket,
   ProxySettings,
@@ -113,7 +115,19 @@ export function installDemoApi() {
     if (path === "/promotions") return json({ slots: [] });
     if (path === "/models" && method === "GET") return json(models);
     if (path === "/models" && method === "POST") return json(models);
-    if (path === "/models/import" && method === "POST") return json({ imported: 0, skipped: models.length, total: models.length });
+    if (path === "/models" && method === "DELETE") return json({ message: t("演示模式不支持清空模型") }, 403);
+    if (path === "/models/import/preview" && method === "POST") {
+      const inputs = (body as { models: ModelInput[] }).models;
+      const seen = new Set(models.map(importKey));
+      const conflicts: ModelImportPreview["conflicts"] = [];
+      for (const model of inputs) {
+        const key = importKey(model);
+        if (seen.has(key)) conflicts.push({ display_name: model.display_name, model_id: model.model_id, request_url: modelRequestUrl(model) });
+        seen.add(key);
+      }
+      return json({ total: inputs.length, conflicts });
+    }
+    if (path === "/models/import" && method === "POST") return json({ message: t("演示模式不支持导入模型") }, 403);
     if (path === "/models/order") return json(models);
     if (path === "/models/discover") return json({ models: models.map((model) => model.model_id) });
     if (path === "/models/import-v0049" && method === "GET") {
@@ -187,6 +201,20 @@ export function installDemoApi() {
 
     return json({ message: `Unhandled demo endpoint: ${method} ${path}` }, 404);
   };
+}
+
+function modelRequestUrl(model: ModelInput) {
+  const url = new URL(model.base_url.trim());
+  if (!model.use_full_url) {
+    const path = url.pathname.replace(/\/+$/, "");
+    const endpoint = model.type === "anthropic" ? "/v1/messages" : model.openai_endpoint || "/v1/responses";
+    url.pathname = path + (/\/v\d+$/.test(path) ? endpoint.replace(/^\/v1/, "") : endpoint);
+  }
+  return url.href;
+}
+
+function importKey(model: ModelInput) {
+  return JSON.stringify([modelRequestUrl(model), model.model_id.trim()]);
 }
 
 function createModel({ hash, order, name, type, url, modelId, endpoint = "/v1/responses" }: {

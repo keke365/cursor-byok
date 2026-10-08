@@ -8,6 +8,7 @@ use serde::Deserialize;
 
 use crate::{
     model::{ModelConfig, ModelConfigInput},
+    store::{ModelImportPolicy, ModelImportPreview, ModelImportResult},
     Result,
 };
 
@@ -19,6 +20,12 @@ use super::{
 #[derive(Deserialize)]
 pub struct SaveModels {
     pub models: Vec<ModelConfigInput>,
+}
+
+#[derive(Deserialize)]
+pub struct ImportModels {
+    pub models: Vec<ModelConfigInput>,
+    pub policy: Option<ModelImportPolicy>,
 }
 
 #[derive(Deserialize)]
@@ -40,11 +47,20 @@ pub async fn create(
     ))
 }
 
-pub async fn import(
+pub async fn preview_import(
     State(service): State<ControlService>,
     Json(input): Json<SaveModels>,
-) -> Result<Json<super::ModelImportResult>> {
-    Ok(Json(service.import_models(&input.models).await?))
+) -> Result<Json<ModelImportPreview>> {
+    Ok(Json(service.preview_model_import(&input.models).await?))
+}
+
+pub async fn import(
+    State(service): State<ControlService>,
+    Json(input): Json<ImportModels>,
+) -> Result<Json<ModelImportResult>> {
+    Ok(Json(
+        service.import_models(&input.models, input.policy).await?,
+    ))
 }
 
 pub async fn reorder(
@@ -59,6 +75,11 @@ pub async fn remove(
     Path(model_hash): Path<String>,
 ) -> Result<StatusCode> {
     service.delete_model(&model_hash).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn clear(State(service): State<ControlService>) -> Result<StatusCode> {
+    service.clear_models().await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

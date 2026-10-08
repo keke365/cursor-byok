@@ -86,8 +86,16 @@ export interface LegacyModelImportResult {
   total: number;
 }
 
+export type ModelImportPolicy = "overwrite" | "skip";
+
+export interface ModelImportPreview {
+  total: number;
+  conflicts: Array<{ display_name: string; model_id: string; request_url: string }>;
+}
+
 export interface ModelImportResult {
   imported: number;
+  overwritten: number;
   skipped: number;
   total: number;
 }
@@ -494,13 +502,15 @@ export const api = {
   dismissAd: (id: string, reason: string) => request<void>(`/promotions/${encodeURIComponent(id)}/dismissals`, { method: "POST", body: JSON.stringify({ reason }) }),
   models: () => request<Model[]>("/models"),
   createModels: (models: ModelInput[]) => request<Model[]>("/models", { method: "POST", body: JSON.stringify({ models }) }),
-  importModels: (models: ModelInput[]) => request<ModelImportResult>("/models/import", { method: "POST", body: JSON.stringify({ models }) }),
+  previewModelImport: (models: ModelInput[]) => request<ModelImportPreview>("/models/import/preview", { method: "POST", body: JSON.stringify({ models }) }),
+  importModels: (models: ModelInput[], policy?: ModelImportPolicy) => request<ModelImportResult>("/models/import", { method: "POST", body: JSON.stringify({ models, policy }) }),
   reorderModels: (modelHashes: string[]) => request<Model[]>("/models/order", { method: "PUT", body: JSON.stringify({ model_hashes: modelHashes }) }),
   discoverModels: (input: ModelDiscoveryInput) => request<{ models: string[] }>("/models/discover", { method: "POST", body: JSON.stringify(input) }),
   previewV0049Models: () => request<LegacyModelImportPreview>("/models/import-v0049"),
   importV0049Models: () => request<LegacyModelImportResult>("/models/import-v0049", { method: "POST" }),
   updateModel: (hash: string, model: ModelInput) => request<Model>(`/models/${hash}`, { method: "PUT", body: JSON.stringify(model) }),
   deleteModel: (hash: string) => request<void>(`/models/${hash}`, { method: "DELETE" }),
+  clearModels: () => request<void>("/models", { method: "DELETE" }),
   testModel: (hash: string, testId: string, signal?: AbortSignal) => request<ModelConnectivityResult>(`/models/${encodeURIComponent(hash)}/test/${encodeURIComponent(testId)}`, { method: "POST", signal }),
   cancelModelTest: (hash: string, testId: string) => request<void>(`/models/${encodeURIComponent(hash)}/test/${encodeURIComponent(testId)}`, { method: "DELETE" }),
   overview: (filter?: { startMs: number; endMs: number; modelHashes?: string[]; bucketMs?: number }) => {

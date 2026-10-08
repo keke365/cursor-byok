@@ -21,7 +21,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 55,
+          "line": 66,
           "column": 15
         }
       ]
@@ -47,8 +47,8 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 66,
-          "column": 68
+          "line": 78,
+          "column": 55
         }
       ]
     },
@@ -321,12 +321,12 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 118,
+          "line": 213,
           "column": 84
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 122,
+          "line": 217,
           "column": 115
         }
       ]
@@ -461,11 +461,6 @@
           "file": "features/models/LegacyModelImport.tsx",
           "line": 42,
           "column": 11
-        },
-        {
-          "file": "features/models/ModelBackupActions.tsx",
-          "line": 67,
-          "column": 15
         }
       ]
     },
@@ -529,6 +524,21 @@
           "file": "features/models/CursorModelTestResult.tsx",
           "line": 21,
           "column": 95
+        }
+      ]
+    },
+    "112e49a1c391284e": {
+      "source": "备份共 {total} 个模型，其中 {count} 项与已有模型或备份中的其他项重复。请选择如何处理所有重复项。",
+      "kind": "template",
+      "placeholders": [
+        "total",
+        "count"
+      ],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 193,
+          "column": 13
         }
       ]
     },
@@ -645,7 +655,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 116,
+          "line": 211,
           "column": 21
         }
       ]
@@ -1187,8 +1197,18 @@
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 97,
+          "line": 162,
           "column": 20
+        },
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 173,
+          "column": 20
+        },
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 187,
+          "column": 19
         },
         {
           "file": "features/plugins/PluginManagementPage.tsx",
@@ -1490,7 +1510,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 121,
+          "line": 216,
           "column": 84
         }
       ]
@@ -1502,7 +1522,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 82,
+          "line": 142,
           "column": 79
         }
       ]
@@ -1712,6 +1732,18 @@
           "file": "features/home/charts/TokenTrendChart.tsx",
           "line": 16,
           "column": 15
+        }
+      ]
+    },
+    "3cc2770e5c0f29a8": {
+      "source": "演示模式不支持导入模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "demo/api.ts",
+          "line": 130,
+          "column": 80
         }
       ]
     },
@@ -2092,12 +2124,12 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 87,
+          "line": 147,
           "column": 28
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 88,
+          "line": 148,
           "column": 73
         }
       ]
@@ -2109,12 +2141,12 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 82,
+          "line": 142,
           "column": 63
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 83,
+          "line": 143,
           "column": 73
         }
       ]
@@ -2176,7 +2208,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 44,
+          "line": 55,
           "column": 15
         }
       ]
@@ -2234,7 +2266,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 77,
+          "line": 137,
           "column": 58
         }
       ]
@@ -2268,6 +2300,22 @@
           "file": "features/settings/TabSettingsCard.tsx",
           "line": 60,
           "column": 41
+        }
+      ]
+    },
+    "4f105573b755c686": {
+      "source": "导入完成：新增 {imported} 个模型，覆盖 {overwritten} 个模型，跳过 {skipped} 个重复项",
+      "kind": "template",
+      "placeholders": [
+        "imported",
+        "overwritten",
+        "skipped"
+      ],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 81,
+          "column": 13
         }
       ]
     },
@@ -2827,7 +2875,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 539,
+          "line": 549,
           "column": 43
         }
       ]
@@ -2915,6 +2963,18 @@
           "file": "features/home/metrics/HomeMetrics.tsx",
           "line": 156,
           "column": 46
+        }
+      ]
+    },
+    "660fb1b057cd346f": {
+      "source": "清空失败",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 106,
+          "column": 57
         }
       ]
     },
@@ -3082,6 +3142,18 @@
         }
       ]
     },
+    "7263d4822afa9864": {
+      "source": "发现重复模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 182,
+          "column": 14
+        }
+      ]
+    },
     "72644ec4389da2f7": {
       "source": "默认平铺",
       "kind": "text",
@@ -3101,12 +3173,12 @@
       "refs": [
         {
           "file": "shared/store/appStore.ts",
-          "line": 229,
+          "line": 243,
           "column": 23
         },
         {
           "file": "shared/store/appStore.ts",
-          "line": 236,
+          "line": 250,
           "column": 25
         }
       ]
@@ -3120,6 +3192,18 @@
           "file": "features/settings/SettingsPage.tsx",
           "line": 167,
           "column": 16
+        }
+      ]
+    },
+    "768cf815891849a8": {
+      "source": "覆盖重复模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 188,
+          "column": 20
         }
       ]
     },
@@ -3166,7 +3250,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 534,
+          "line": 544,
           "column": 43
         }
       ]
@@ -3344,7 +3428,7 @@
       "refs": [
         {
           "file": "shared/api.ts",
-          "line": 467,
+          "line": 475,
           "column": 21
         }
       ]
@@ -3446,6 +3530,20 @@
           "file": "features/settings/ProxySettingsCard.tsx",
           "line": 46,
           "column": 129
+        }
+      ]
+    },
+    "8514456845bcb54f": {
+      "source": "确定删除全部 {count} 个已添加模型吗？此操作不可撤销。",
+      "kind": "template",
+      "placeholders": [
+        "count"
+      ],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 178,
+          "column": 11
         }
       ]
     },
@@ -3579,6 +3677,28 @@
           "file": "features/calls/CallTable.tsx",
           "line": 36,
           "column": 15
+        }
+      ]
+    },
+    "8c038936ba751274": {
+      "source": "清空已添加模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 152,
+          "column": 44
+        },
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 153,
+          "column": 73
+        },
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 171,
+          "column": 14
         }
       ]
     },
@@ -4069,6 +4189,18 @@
         }
       ]
     },
+    "9f8c6a444e0210b8": {
+      "source": "覆盖会用备份中的完整配置（包括 API Key）替换重复模型；已有多条相同接口和模型的配置会合并为一条。跳过会保留已有配置。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 195,
+          "column": 13
+        }
+      ]
+    },
     "9fb48101d237ff96": {
       "source": "近一周",
       "kind": "text",
@@ -4413,6 +4545,20 @@
         }
       ]
     },
+    "a80e706a4ed5f012": {
+      "source": "已删除 {count} 个模型",
+      "kind": "template",
+      "placeholders": [
+        "count"
+      ],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 108,
+          "column": 15
+        }
+      ]
+    },
     "a98585871c5313ff": {
       "source": "显示名称",
       "kind": "text",
@@ -4442,7 +4588,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 120,
+          "line": 215,
           "column": 58
         }
       ]
@@ -4646,6 +4792,18 @@
           "file": "features/plugins/PluginManagementPage.tsx",
           "line": 301,
           "column": 70
+        }
+      ]
+    },
+    "b260f3de6ceba531": {
+      "source": "备份内的重复项：覆盖保留最后一项，跳过保留第一项。其他模型将正常新增；取消不会导入任何模型。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 196,
+          "column": 13
         }
       ]
     },
@@ -4958,8 +5116,20 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 102,
+          "line": 167,
           "column": 11
+        }
+      ]
+    },
+    "bc67f069eb46c105": {
+      "source": "跳过重复模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 190,
+          "column": 140
         }
       ]
     },
@@ -5039,6 +5209,18 @@
           "file": "features/plugins/PluginManagementPage.tsx",
           "line": 278,
           "column": 45
+        }
+      ]
+    },
+    "c1d9d09298bb9499": {
+      "source": "删除全部",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 174,
+          "column": 21
         }
       ]
     },
@@ -5482,6 +5664,18 @@
           "file": "features/models/CursorSettingsPage.tsx",
           "line": 355,
           "column": 27
+        }
+      ]
+    },
+    "d87ea605bdee9bfe": {
+      "source": "没有可清空的模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 152,
+          "column": 59
         }
       ]
     },
@@ -6085,7 +6279,7 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 42,
+          "line": 53,
           "column": 15
         }
       ]
@@ -6140,7 +6334,12 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 98,
+          "line": 45,
+          "column": 9
+        },
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 163,
           "column": 21
         }
       ]
@@ -6282,17 +6481,17 @@
       "refs": [
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 77,
+          "line": 137,
           "column": 44
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 78,
+          "line": 138,
           "column": 73
         },
         {
           "file": "features/models/ModelBackupActions.tsx",
-          "line": 95,
+          "line": 160,
           "column": 14
         }
       ]
@@ -6373,6 +6572,18 @@
           "file": "features/home/overview/OverviewTimeRangeFilter.tsx",
           "line": 102,
           "column": 19
+        }
+      ]
+    },
+    "f86d672b6e809e0f": {
+      "source": "演示模式不支持清空模型",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "demo/api.ts",
+          "line": 118,
+          "column": 75
         }
       ]
     },
@@ -6537,6 +6748,18 @@
           "file": "features/models/CursorSettingsPage.tsx",
           "line": 336,
           "column": 21
+        }
+      ]
+    },
+    "fc54dba797b5e5b4": {
+      "source": "实际请求接口地址与模型 ID 相同即视为重复，即使 API Key 或显示名称不同。",
+      "kind": "text",
+      "placeholders": [],
+      "refs": [
+        {
+          "file": "features/models/ModelBackupActions.tsx",
+          "line": 194,
+          "column": 13
         }
       ]
     },

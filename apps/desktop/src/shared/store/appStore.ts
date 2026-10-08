@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { api, type CursorHarnessStatus, type LlmCall, type Model, type ModelInput, type Overview, type PluginDescriptor, type PluginRuntimeStatus, type PortSettings, type TokenPricingSettings } from "../api";
+import { api, type CursorHarnessStatus, type LlmCall, type Model, type ModelInput, type ModelImportPolicy, type Overview, type PluginDescriptor, type PluginRuntimeStatus, type PortSettings, type TokenPricingSettings } from "../api";
 import { applyTheme, isThemeId, type ThemeId } from "../theme/theme";
 
 export const DEFAULT_TOKEN_PRICING: TokenPricingSettings = {
@@ -112,6 +112,20 @@ export const appStore = {
     });
   },
 
+  async clearModels() {
+    update({ cursorBusy: true, error: null });
+    try {
+      await api.clearModels();
+      await appStore.refresh();
+      return true;
+    } catch (cause) {
+      update({ error: cause instanceof Error ? cause.message : String(cause) });
+      return false;
+    } finally {
+      update({ cursorBusy: false });
+    }
+  },
+
   async initializeCursorCa() {
     update({ cursorBusy: true, error: null });
     try {
@@ -189,10 +203,10 @@ export const appStore = {
       return null;
     } finally { update({ cursorBusy: false }); }
   },
-  async importModels(models: ModelInput[]) {
+  async importModels(models: ModelInput[], policy?: ModelImportPolicy) {
     update({ cursorBusy: true, error: null });
     try {
-      const result = await api.importModels(models);
+      const result = await api.importModels(models, policy);
       await appStore.refresh();
       return result;
     } catch (cause) {
